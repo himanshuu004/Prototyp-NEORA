@@ -3,10 +3,11 @@ import { v } from "convex/values";
 
 export default defineSchema({
   users: defineTable({
-    clerkId: v.string(), // Clerk user ID
+    clerkId: v.optional(v.string()), // Clerk user ID (optional for migration)
     email: v.string(),
     name: v.string(),
     phone: v.optional(v.string()),
+    password: v.optional(v.string()), // Legacy field, deprecated
     role: v.union(v.literal("user"), v.literal("admin")),
     createdAt: v.number(),
   })
@@ -35,8 +36,7 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_date", ["date"])
-    .index("by_status", ["status"])
-    .index("by_date_status", ["date", "status"]),
+    .index("by_status", ["status"]),
 
   sessions: defineTable({
     userId: v.id("users"),

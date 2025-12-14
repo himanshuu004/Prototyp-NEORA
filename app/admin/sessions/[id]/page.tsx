@@ -11,7 +11,7 @@ export default function SessionDetail() {
   const router = useRouter();
   const params = useParams();
   const sessionId = params.id as Id<"sessions">;
-  const session = useQuery(api.sessions.get, { sessionId });
+  const session = useQuery(api.sessions.get, sessionId ? { sessionId } : "skip");
   const progressNotes = useQuery(api.progressNotes.getBySession, sessionId ? { sessionId } : "skip");
   const updateSessionStatus = useMutation(api.sessions.updateStatus);
   const createProgressNote = useMutation(api.progressNotes.create);

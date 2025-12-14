@@ -6,9 +6,9 @@ A full-stack therapy clinic web application built with Next.js (App Router), Tai
 
 ### Public Pages
 - Home page with auto-sliding carousel
-- About page with director information
-- Services page
-- Disorders page
+- About page with vision, mission, and director profile
+- Services page with detailed service information
+- Disorders page with information about conditions we help with
 - Testimonials page
 - Gallery page with image slider
 - Contact page
@@ -29,7 +29,7 @@ A full-stack therapy clinic web application built with Next.js (App Router), Tai
 - Search and filter capabilities
 
 ### Additional Features
-- Floating chatbot for FAQ
+- Floating chatbot (rule-based FAQ)
 - Real-time updates using Convex
 - Role-based authentication with Clerk
 - Responsive design
@@ -41,8 +41,14 @@ A full-stack therapy clinic web application built with Next.js (App Router), Tai
 - **TypeScript**
 - **Tailwind CSS**
 - **Convex** (Real-time database)
-- **Clerk** (Authentication - Google & Phone)
+- **Clerk** (Authentication - Google & Phone login)
 - **React Icons**
+
+## Prerequisites
+
+- Node.js 18+ and npm
+- Convex account (free tier available)
+- Clerk account (free tier available)
 
 ## Setup Instructions
 
@@ -52,9 +58,7 @@ A full-stack therapy clinic web application built with Next.js (App Router), Tai
 npm install
 ```
 
-### 2. Initialize Convex
-
-Run this command to set up Convex:
+### 2. Set up Convex
 
 ```bash
 npx convex dev
@@ -62,30 +66,38 @@ npx convex dev
 
 This will:
 - Create a Convex account (if you don't have one)
-- Generate all the proper `_generated` files
-- Provide you with a deployment URL
-- Watch for changes to your Convex functions
+- Set up your database schema
+- Generate all necessary API files
+- Create/update `.env.local` with your Convex URL
 
-**Important:** Keep this command running in a separate terminal window during development.
+**Keep this terminal running** while developing!
 
-After running `npx convex dev`, it will create a `.env.local` file with your `NEXT_PUBLIC_CONVEX_URL`.
+### 3. Set up Clerk Authentication
 
-### 3. Configure Environment Variables
-
-Create or update `.env.local` file in the root directory:
+1. Go to [Clerk Dashboard](https://dashboard.clerk.com)
+2. Create a new application or use existing one
+3. Copy your **Publishable Key** and **Secret Key**
+4. Add them to `.env.local`:
 
 ```env
-# Convex (automatically added by 'npx convex dev')
-NEXT_PUBLIC_CONVEX_URL=your_convex_url_here
-
-# Clerk Authentication (Required)
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key_here
-CLERK_SECRET_KEY=your_clerk_secret_key_here
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+CLERK_SECRET_KEY=sk_test_...
 ```
 
-Get your Clerk keys from: https://dashboard.clerk.com/
+### 4. Configure Environment Variables
 
-### 4. Run Development Server
+Create/update `.env.local` in the root directory:
+
+```env
+# Convex (automatically added by `npx convex dev`)
+NEXT_PUBLIC_CONVEX_URL=https://your-convex-deployment.convex.cloud
+
+# Clerk Authentication
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+CLERK_SECRET_KEY=sk_test_...
+```
+
+### 5. Run Development Server
 
 In a **new terminal window** (keep Convex running in the first one):
 
@@ -93,72 +105,91 @@ In a **new terminal window** (keep Convex running in the first one):
 npm run dev
 ```
 
-### 5. Open in Browser
+### 6. Open in Browser
 
 Navigate to `http://localhost:3000`
 
 ## Admin Access
 
-The admin user is automatically created when you sign in with Clerk using:
-- **Email:** `priyankarawat00@gmail.com`
+The admin account is automatically created when a user signs in with Clerk using:
+- **Email**: `priyankarawat00@gmail.com`
 
-Users with this email will automatically get admin role.
+This email will automatically get admin role in the system.
 
 ## Project Structure
 
 ```
 /app
   /about          - About page
-  /admin          - Admin dashboard and management
+  /admin          - Admin dashboard and management pages
   /booking        - Session booking page
+  /contact        - Contact page
   /dashboard      - User dashboard
+  /gallery        - Gallery page
   /login          - Clerk login page
   /signup         - Clerk signup page
-/components       - Reusable React components
-/convex           - Convex functions (database queries/mutations)
-/public           - Static assets (images, logos, etc.)
+  /services       - Services page
+  /disorders      - Disorders page
+  /testimonials   - Testimonials page
+
+/components
+  /Navbar         - Navigation bar with user menu
+  /Footer         - Footer component
+  /Chatbot        - Rule-based chatbot
+  /ClerkUserSync  - Syncs Clerk user to Convex
+  /ConvexClientProvider - Convex client provider
+
+/convex
+  /schema.ts      - Database schema
+  /clerk.ts       - Clerk user sync functions
+  /users.ts       - User queries
+  /children.ts    - Child profile functions
+  /sessions.ts    - Session management
+  /slots.ts       - Slot management
+  /payments.ts    - Payment tracking
+  /progressNotes.ts - Progress notes
 ```
+
+## Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
+- `npx convex dev` - Start Convex development server (required)
 
 ## Deployment
 
-### Deploy to Vercel
+### Vercel (Recommended)
 
 1. Push your code to GitHub
-2. Import your repository to Vercel
-3. Add environment variables in Vercel dashboard:
+2. Import project in Vercel
+3. Add environment variables:
    - `NEXT_PUBLIC_CONVEX_URL`
    - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
    - `CLERK_SECRET_KEY`
-4. Deploy
+4. Deploy!
 
-### Deploy Convex
+### Convex Production
 
-Run:
 ```bash
 npx convex deploy
 ```
 
-This will deploy your Convex functions to production.
-
-## Important Notes
-
-- The app uses Clerk for authentication (Google and Phone login)
-- All data is stored in Convex (real-time database)
-- Admin users are automatically assigned based on email address
-- The chatbot is a simple rule-based FAQ system (no external API needed)
-
 ## Troubleshooting
 
-### Error: "api is not defined" or "api.clerk.syncUser is not a function"
+### "Convex API not found" errors
+- Make sure `npx convex dev` is running
+- Check that `.env.local` has `NEXT_PUBLIC_CONVEX_URL`
 
-This means Convex hasn't been initialized yet. Run `npx convex dev` first.
+### "Clerk publishableKey" errors
+- Verify Clerk keys are set in `.env.local`
+- Make sure keys start with `pk_test_` or `pk_live_`
 
-### Error: "Missing publishableKey" or Clerk errors
+### Build errors
+- Run `npx convex dev` first to generate API files
+- Clear `.next` folder: `rm -rf .next`
 
-Make sure you've added your Clerk keys to `.env.local`:
-- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
-- `CLERK_SECRET_KEY`
+## License
 
-### Build errors about Convex
-
-Make sure to run `npx convex dev` at least once to generate the `_generated` files.
+Private - NEORA Therapy Clinic

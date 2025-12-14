@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6.36.2",
-    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^25.0.1",
     "autoprefixer": "^10.4.22",
     "convex": "^1.31.0",
