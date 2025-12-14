@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Chatbot from "@/components/Chatbot";
 import ClerkUserSync from "@/components/ClerkUserSync";
+import ClerkProviderWrapper from "@/components/ClerkProviderWrapper";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,10 +22,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || "pk_test_dummy_for_build";
-
   return (
-    <ClerkProvider publishableKey={clerkPublishableKey}>
+    <ClerkProviderWrapper>
       <html lang="en">
         <body className={`${inter.className} flex flex-col min-h-screen`}>
           <ClerkUserSync />
@@ -35,7 +33,7 @@ export default function RootLayout({
           <Chatbot />
         </body>
       </html>
-    </ClerkProvider>
+    </ClerkProviderWrapper>
   );
 }
 

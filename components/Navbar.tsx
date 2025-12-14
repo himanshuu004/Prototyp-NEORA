@@ -79,27 +79,15 @@ export default function Navbar() {
             ))}
           </div>
 
-          <div className="flex items-center space-x-2 md:space-x-4">
-            {/* Mobile menu button */}
-            <button
-              onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="md:hidden p-2 rounded-lg hover:bg-gray-50 transition-colors"
-              aria-label="Toggle menu"
-            >
-              {showMobileMenu ? (
-                <FaTimes className="text-2xl text-gray-700" />
-              ) : (
-                <FaBars className="text-2xl text-gray-700" />
-              )}
-            </button>
-            {isLoaded && isSignedIn && user ? (
-              <div className="relative hidden md:block" ref={menuRef}>
+          <div className="flex items-center space-x-4">
+            {isLoaded && isSignedIn && user && isClerkReady ? (
+              <div className="relative" ref={menuRef}>
                 <button
                   onClick={() => setShowProfileMenu(!showProfileMenu)}
                   className="flex items-center space-x-3 px-4 py-2.5 rounded-lg hover:bg-gray-50 transition-all duration-200 font-medium"
                 >
                   <FaUserCircle className="text-3xl" style={{ color: 'rgba(37, 142, 203)' }} />
-                  <span className="text-base font-semibold text-gray-700">
+                  <span className="hidden md:block text-base font-semibold text-gray-700">
                     {userName}
                   </span>
                 </button>
@@ -149,12 +137,20 @@ export default function Navbar() {
                 </Link>
               </>
             )}
+            {/* Mobile menu button */}
+            <button
+              className="md:hidden p-2 rounded-md text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500"
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              aria-label="Toggle mobile menu"
+            >
+              {showMobileMenu ? <FaTimes size={24} /> : <FaBars size={24} />}
+            </button>
           </div>
         </div>
 
         {/* Mobile Menu */}
         {showMobileMenu && (
-          <div 
+          <div
             ref={mobileMenuRef}
             className="md:hidden border-t border-gray-200 bg-white py-4 space-y-1"
           >
@@ -185,7 +181,7 @@ export default function Navbar() {
                   </Link>
                   <div className="px-4 py-3">
                     <SignOutButton>
-                      <button className="w-full text-left text-base font-semibold text-red-600 hover:bg-gray-50 flex items-center space-x-2 py-2">
+                      <button className="w-full text-left text-base font-semibold text-red-600 hover:bg-gray-50 flex items-center space-x-2">
                         <FaSignOutAlt />
                         <span>Logout</span>
                       </button>
@@ -204,7 +200,7 @@ export default function Navbar() {
                   <Link
                     href="/signup"
                     onClick={() => setShowMobileMenu(false)}
-                    className="block mx-4 mb-2 px-4 py-3 text-base font-semibold text-white rounded-lg text-center"
+                    className="block px-4 py-3 text-base font-semibold text-white rounded-lg mx-4"
                     style={{ backgroundColor: 'rgba(230, 82, 139)' }}
                   >
                     Sign Up
