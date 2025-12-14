@@ -105,33 +105,36 @@ export default function Dashboard() {
             <h2 className="text-2xl font-semibold text-gray-800 mb-4">Booked Sessions</h2>
             {userSessions && userSessions.length > 0 ? (
               <div className="space-y-4">
-                {userSessions.map((session) => (
-                  <div key={session._id} className="border border-gray-200 rounded-md p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h3 className="font-semibold text-gray-800">{session.therapyType}</h3>
-                        <p className="text-sm text-gray-600">
-                          {formatDate(session.sessionDate)} at {session.sessionTime}
-                        </p>
+                {userSessions.map((session) => {
+                  const sessionChild = session.childId ? childrenStorage.getById(session.childId) : null;
+                  return (
+                    <div key={session._id} className="border border-gray-200 rounded-md p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h3 className="font-semibold text-gray-800">{session.therapyType}</h3>
+                          <p className="text-sm text-gray-600">
+                            {formatDate(session.sessionDate)} at {session.sessionTime}
+                          </p>
+                        </div>
+                        <span
+                          className={`px-2 py-1 rounded text-xs font-semibold ${
+                            session.status === "scheduled"
+                              ? "bg-blue-100 text-blue-800"
+                              : session.status === "completed"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          {session.status}
+                        </span>
                       </div>
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-semibold ${
-                          session.status === "scheduled"
-                            ? "bg-blue-100 text-blue-800"
-                            : session.status === "completed"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-gray-100 text-gray-800"
-                        }`}
-                      >
-                        {session.status}
-                      </span>
+                      {sessionChild && (
+                        <p className="text-sm text-gray-600">Child: {sessionChild.name}</p>
+                      )}
+                      <p className="text-sm text-gray-600 mt-2">{session.concern}</p>
                     </div>
-                    {session.child && (
-                      <p className="text-sm text-gray-600">Child: {session.child.name}</p>
-                    )}
-                    <p className="text-sm text-gray-600 mt-2">{session.concern}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <p className="text-gray-600">No sessions booked yet.</p>
