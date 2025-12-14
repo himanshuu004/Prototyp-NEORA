@@ -2,6 +2,7 @@
 
 import { ClerkProvider } from "@clerk/nextjs";
 import { ReactNode } from "react";
+import ClerkUserSyncInner from "./ClerkUserSyncInner";
 
 interface ClerkProviderWrapperProps {
   children: ReactNode;
@@ -24,6 +25,7 @@ export default function ClerkProviderWrapper({ children }: ClerkProviderWrapperP
 
   return (
     <ClerkProvider publishableKey={clerkPublishableKey}>
+      <ClerkUserSyncInner />
       {children}
     </ClerkProvider>
   );

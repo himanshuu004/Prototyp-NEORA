@@ -4,7 +4,6 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Chatbot from "@/components/Chatbot";
-import ClerkUserSync from "@/components/ClerkUserSync";
 import ClerkProviderWrapper from "@/components/ClerkProviderWrapper";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -26,7 +25,6 @@ export default function RootLayout({
     <ClerkProviderWrapper>
       <html lang="en">
         <body className={`${inter.className} flex flex-col min-h-screen`}>
-          <ClerkUserSync />
           <Navbar />
           <main className="flex-grow">{children}</main>
           <Footer />
