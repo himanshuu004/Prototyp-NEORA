@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Chatbot from "@/components/Chatbot";
 import ClerkProviderWrapper from "@/components/ClerkProviderWrapper";
+import ConvexClientProvider from "@/components/ConvexClientProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -23,14 +24,16 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProviderWrapper>
-      <html lang="en">
-        <body className={`${inter.className} flex flex-col min-h-screen`}>
-          <Navbar />
-          <main className="flex-grow">{children}</main>
-          <Footer />
-          <Chatbot />
-        </body>
-      </html>
+      <ConvexClientProvider>
+        <html lang="en">
+          <body className={`${inter.className} flex flex-col min-h-screen`}>
+            <Navbar />
+            <main className="flex-grow">{children}</main>
+            <Footer />
+            <Chatbot />
+          </body>
+        </html>
+      </ConvexClientProvider>
     </ClerkProviderWrapper>
   );
 }

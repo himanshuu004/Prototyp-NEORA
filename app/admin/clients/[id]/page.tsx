@@ -1,14 +1,16 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { children as childrenStorage, sessions as sessionsStorage, progressNotes as progressNotesStorage } from "@/lib/storage";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 
 export default function ClientDetail() {
   const params = useParams();
-  const childId = params.id as string;
-  const child = childrenStorage.getById(childId);
-  const allSessions = sessionsStorage.getAll();
-  const progressNotes = progressNotesStorage.getByChild(childId);
+  const childId = params.id as Id<"children">;
+  const child = useQuery(api.children.get, { childId });
+  const allSessions = useQuery(api.sessions.getAll);
+  const progressNotes = useQuery(api.progressNotes.getByChild, childId ? { childId } : "skip");
 
   if (!child) {
     return <div className="p-8">Loading...</div>;
@@ -114,5 +116,3 @@ export default function ClientDetail() {
     </div>
   );
 }
-
-

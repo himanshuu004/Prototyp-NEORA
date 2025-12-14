@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import { useConvexUser, useConvexUserId } from "@/components/ClerkUserSync";
-import { children as childrenStorage, slots as slotsStorage, sessions as sessionsStorage } from "@/lib/storage";
 import Link from "next/link";
 
 export default function Booking() {
@@ -13,29 +15,20 @@ export default function Booking() {
   const user = useConvexUser();
   const userId = useConvexUserId();
   const [selectedDate, setSelectedDate] = useState("");
-  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
-  const [userChildren, setUserChildren] = useState(childrenStorage.getByUser(userId || ""));
-  const [availableSlots, setAvailableSlots] = useState(slotsStorage.getAvailable(selectedDate));
+  const [selectedSlot, setSelectedSlot] = useState<Id<"slots"> | null>(null);
+  const createSession = useMutation(api.sessions.create);
+  const children = useQuery(api.children.getByUser, userId ? { userId } : "skip");
 
-  useEffect(() => {
-    if (userId) {
-      setUserChildren(childrenStorage.getByUser(userId));
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    if (selectedDate) {
-      setAvailableSlots(slotsStorage.getAvailable(selectedDate));
-    } else {
-      setAvailableSlots([]);
-    }
-  }, [selectedDate]);
+  const availableSlots = useQuery(
+    api.slots.getAvailable,
+    selectedDate ? { date: selectedDate } : "skip"
+  );
 
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
     clientType: "child" as "child" | "adult",
-    childId: "",
+    childId: "" as Id<"children"> | "",
     concern: "",
     therapyType: "Speech Therapy",
   });
@@ -87,11 +80,11 @@ export default function Booking() {
 
     try {
       const slot = availableSlots?.find((s) => s._id === selectedSlot);
-      if (!slot || !userId) {
-        throw new Error("Selected slot not found or user not logged in");
+      if (!slot) {
+        throw new Error("Selected slot not found");
       }
 
-      sessionsStorage.create({
+      await createSession({
         userId,
         childId: formData.clientType === "child" && formData.childId ? formData.childId : undefined,
         slotId: selectedSlot,
@@ -99,13 +92,12 @@ export default function Booking() {
         concern: formData.concern,
         sessionDate: selectedDate,
         sessionTime: slot.time,
-        status: "scheduled",
       });
 
       alert("Booking successful! Check your dashboard for details.");
       router.push("/dashboard");
     } catch (err: any) {
-      setError(err.message || "Booking failed. Please try again.");
+      setError(err.message || "Failed to book session. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -134,8 +126,8 @@ export default function Booking() {
                 type="date"
                 id="date"
                 required
-                min={today}
                 value={selectedDate}
+                min={today}
                 onChange={(e) => {
                   setSelectedDate(e.target.value);
                   setSelectedSlot(null);
@@ -144,106 +136,81 @@ export default function Booking() {
               />
             </div>
 
-            {selectedDate && availableSlots && (
+            {selectedDate && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Available Slots (45 minutes each)
-                </label>
-                {availableSlots.length === 0 ? (
-                  <p className="text-gray-600">No available slots for this date.</p>
-                ) : (
-                  <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Available Slots</h3>
+                {availableSlots && availableSlots.length > 0 ? (
+                  <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                     {availableSlots.map((slot) => (
                       <button
                         key={slot._id}
                         type="button"
                         onClick={() => setSelectedSlot(slot._id)}
-                        className={`px-4 py-2 rounded-md border-2 transition-all cursor-pointer ${
-                          selectedSlot === slot._id ? "text-white" : "border-gray-300"
+                        className={`px-4 py-2 rounded-md border-2 transition-colors ${
+                          selectedSlot === slot._id
+                            ? "text-white"
+                            : "border-gray-300 hover:border-opacity-70"
                         }`}
-                        style={selectedSlot === slot._id ? { 
-                          backgroundColor: 'rgba(37, 142, 203)', 
-                          borderColor: 'rgba(37, 142, 203)' 
+                        style={selectedSlot === slot._id ? {
+                          backgroundColor: 'rgba(37, 142, 203)',
+                          borderColor: 'rgba(37, 142, 203)'
                         } : {
                           borderColor: 'rgba(209, 213, 219, 1)'
-                        }}
-                        onMouseEnter={(e) => {
-                          if (selectedSlot !== slot._id) {
-                            e.currentTarget.style.borderColor = 'rgba(37, 142, 203)';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (selectedSlot !== slot._id) {
-                            e.currentTarget.style.borderColor = 'rgba(209, 213, 219, 1)';
-                          }
                         }}
                       >
                         {slot.time}
                       </button>
                     ))}
                   </div>
+                ) : (
+                  <p className="text-gray-600">No slots available for this date.</p>
                 )}
               </div>
             )}
 
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                Name
-              </label>
-              <input
-                type="text"
-                id="name"
-                required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-                Phone
-              </label>
-              <input
-                type="tel"
-                id="phone"
-                required
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="clientType" className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Client Type
               </label>
-              <select
-                id="clientType"
-                value={formData.clientType}
-                onChange={(e) =>
-                  setFormData({ ...formData, clientType: e.target.value as "child" | "adult" })
-                }
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
-              >
-                <option value="child">Child</option>
-                <option value="adult">Adult</option>
-              </select>
+              <div className="flex space-x-4">
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    name="clientType"
+                    value="child"
+                    checked={formData.clientType === "child"}
+                    onChange={() => setFormData({ ...formData, clientType: "child" })}
+                    className="form-radio text-primary-600"
+                  />
+                  <span className="ml-2 text-gray-700">Child</span>
+                </label>
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    name="clientType"
+                    value="adult"
+                    checked={formData.clientType === "adult"}
+                    onChange={() => setFormData({ ...formData, clientType: "adult", childId: "" })}
+                    className="form-radio text-primary-600"
+                  />
+                  <span className="ml-2 text-gray-700">Adult</span>
+                </label>
+              </div>
             </div>
 
-            {formData.clientType === "child" && userChildren && userChildren.length > 0 && (
+            {formData.clientType === "child" && (
               <div>
                 <label htmlFor="childId" className="block text-sm font-medium text-gray-700 mb-1">
-                  Select Child (Optional)
+                  Select Child Profile (or create new)
                 </label>
                 <select
                   id="childId"
                   value={formData.childId}
-                  onChange={(e) => setFormData({ ...formData, childId: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, childId: e.target.value as Id<"children"> })}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="">Create new profile</option>
-                  {userChildren.map((child) => (
+                  {children?.map((child) => (
                     <option key={child._id} value={child._id}>
                       {child.name} (Age: {child.age})
                     </option>
@@ -273,17 +240,16 @@ export default function Booking() {
 
             <div>
               <label htmlFor="concern" className="block text-sm font-medium text-gray-700 mb-1">
-                Concern / Reason for Session
+                Main Concern / Reason for Booking
               </label>
               <textarea
                 id="concern"
                 required
-                rows={4}
                 value={formData.concern}
                 onChange={(e) => setFormData({ ...formData, concern: e.target.value })}
+                rows={3}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder="Please describe your concern or reason for booking this session..."
-              />
+              ></textarea>
             </div>
 
             <button
@@ -300,4 +266,3 @@ export default function Booking() {
     </div>
   );
 }
-

@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import { useConvexUser, useConvexUserId } from "@/components/ClerkUserSync";
-import { slots as slotsStorage, sessions as sessionsStorage, children as childrenStorage, payments as paymentsStorage, users as usersStorage } from "@/lib/storage";
 import Link from "next/link";
 
 export default function AdminDashboard() {
@@ -70,17 +72,11 @@ export default function AdminDashboard() {
   );
 }
 
-function SlotManagement({ userId }: { userId: string }) {
+function SlotManagement({ userId }: { userId: Id<"users"> }) {
   const [selectedDate, setSelectedDate] = useState("");
-  const [slots, setSlots] = useState(slotsStorage.getByDate(selectedDate));
-  const [allSessions, setAllSessions] = useState(sessionsStorage.getAll());
-
-  useEffect(() => {
-    if (selectedDate) {
-      setSlots(slotsStorage.getByDate(selectedDate));
-      setAllSessions(sessionsStorage.getAll());
-    }
-  }, [selectedDate]);
+  const slots = useQuery(api.slots.getByDate, selectedDate ? { date: selectedDate } : "skip");
+  const allSessions = useQuery(api.sessions.getAll);
+  const allUsers = useQuery(api.users.getAll);
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -117,6 +113,7 @@ function SlotManagement({ userId }: { userId: string }) {
           <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
             {slots.map((slot) => {
               const session = allSessions?.find((s) => s.slotId === slot._id);
+              const sessionUser = session ? allUsers?.find((u) => u._id === session.userId) : null;
               return (
                 <div
                   key={slot._id}
@@ -130,10 +127,8 @@ function SlotManagement({ userId }: { userId: string }) {
                 >
                   <p className="font-semibold">{slot.time}</p>
                   <p className="text-xs mt-1">{slot.status}</p>
-                  {session && (
-                    <p className="text-xs mt-1 text-gray-600">
-                      {usersStorage.getById(session.userId)?.name || "Booked"}
-                    </p>
+                  {sessionUser && (
+                    <p className="text-xs mt-1 text-gray-600">{sessionUser.name}</p>
                   )}
                 </div>
               );
@@ -145,9 +140,9 @@ function SlotManagement({ userId }: { userId: string }) {
   );
 }
 
-function ClientManagement({ userId }: { userId: string }) {
+function ClientManagement({ userId }: { userId: Id<"users"> }) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [allChildren, setAllChildren] = useState(childrenStorage.getAll());
+  const allChildren = useQuery(api.children.getAll);
 
   const filteredChildren = allChildren?.filter((child) =>
     child.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -176,29 +171,27 @@ function ClientManagement({ userId }: { userId: string }) {
         </div>
         <div className="space-y-4">
           {filteredChildren && filteredChildren.length > 0 ? (
-            filteredChildren.map((child) => {
-              return (
-                <div key={child._id} className="border border-gray-200 rounded-md p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-semibold text-gray-800">{child.name}</h3>
-                      <p className="text-sm text-gray-600">Age: {child.age}</p>
-                      <p className="text-sm text-gray-600">Diagnosis: {child.diagnosis}</p>
-                      <p className="text-sm text-gray-600 mt-2">{child.therapyPlan}</p>
-                      {child.notes && (
-                        <p className="text-sm text-gray-500 mt-1">Notes: {child.notes}</p>
-                      )}
-                    </div>
-                    <Link
-                      href={`/admin/clients/${child._id}`}
-                      className="text-primary-600 hover:text-primary-700 font-semibold"
-                    >
-                      View Details
-                    </Link>
+            filteredChildren.map((child) => (
+              <div key={child._id} className="border border-gray-200 rounded-md p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-semibold text-gray-800">{child.name}</h3>
+                    <p className="text-sm text-gray-600">Age: {child.age}</p>
+                    <p className="text-sm text-gray-600">Diagnosis: {child.diagnosis}</p>
+                    <p className="text-sm text-gray-600 mt-2">{child.therapyPlan}</p>
+                    {child.notes && (
+                      <p className="text-sm text-gray-500 mt-1">Notes: {child.notes}</p>
+                    )}
                   </div>
+                  <Link
+                    href={`/admin/clients/${child._id}`}
+                    className="text-primary-600 hover:text-primary-700 font-semibold"
+                  >
+                    View Details
+                  </Link>
                 </div>
-              );
-            })
+              </div>
+            ))
           ) : (
             <p className="text-gray-600">No clients found.</p>
           )}
@@ -208,10 +201,10 @@ function ClientManagement({ userId }: { userId: string }) {
   );
 }
 
-function SessionRecords({ userId }: { userId: string }) {
-  const [allSessions, setAllSessions] = useState(sessionsStorage.getAll());
-  const [allUsers, setAllUsers] = useState(usersStorage.getAll());
-  const [allChildren, setAllChildren] = useState(childrenStorage.getAll());
+function SessionRecords({ userId }: { userId: Id<"users"> }) {
+  const allSessions = useQuery(api.sessions.getAll);
+  const allUsers = useQuery(api.users.getAll);
+  const allChildren = useQuery(api.children.getByUser, { userId });
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
@@ -235,8 +228,8 @@ function SessionRecords({ userId }: { userId: string }) {
             </thead>
             <tbody>
               {allSessions.map((session) => {
-                const sessionUser = allUsers.find((u) => u._id === session.userId);
-                const sessionChild = session.childId ? allChildren.find((c) => c._id === session.childId) : null;
+                const sessionUser = allUsers?.find((u) => u._id === session.userId);
+                const sessionChild = session.childId ? allChildren?.find((c) => c._id === session.childId) : null;
                 return (
                   <tr key={session._id} className="border-b">
                     <td className="py-2 px-4">{formatDate(session.sessionDate)}</td>
@@ -281,14 +274,14 @@ function SessionRecords({ userId }: { userId: string }) {
 }
 
 function PaymentMonitoring() {
-  const [allPayments, setAllPayments] = useState(paymentsStorage.getAll());
-  const [allUsers, setAllUsers] = useState(usersStorage.getAll());
+  const allPayments = useQuery(api.payments.getAll);
+  const allUsers = useQuery(api.users.getAll);
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleDateString();
   };
 
-  const getUserName = (userId: string) => {
+  const getUserName = (userId: Id<"users">) => {
     return allUsers?.find((u) => u._id === userId)?.name || "Unknown";
   };
 

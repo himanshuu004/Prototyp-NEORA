@@ -2,13 +2,16 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import { useConvexUserId } from "@/components/ClerkUserSync";
-import { slots as slotsStorage } from "@/lib/storage";
 
 export default function CreateSlots() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const date = searchParams.get("date") || new Date().toISOString().split("T")[0];
+  const createSlot = useMutation(api.slots.create);
   const userId = useConvexUserId();
   const [slots, setSlots] = useState<Array<{ time: string; status: "available" | "blocked" }>>([]);
 
@@ -21,12 +24,8 @@ export default function CreateSlots() {
     if (!userId) return;
 
     try {
-      if (!userId) {
-        throw new Error("User not logged in");
-      }
-      
       for (const slot of slots) {
-        slotsStorage.create({
+        await createSlot({
           date,
           time: slot.time,
           duration: 45,
@@ -134,5 +133,3 @@ export default function CreateSlots() {
     </div>
   );
 }
-
-

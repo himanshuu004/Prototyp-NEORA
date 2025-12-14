@@ -2,23 +2,23 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import { useConvexUserId } from "@/components/ClerkUserSync";
-import { sessions as sessionsStorage, progressNotes as progressNotesStorage, children as childrenStorage, users as usersStorage } from "@/lib/storage";
 
 export default function SessionDetail() {
   const router = useRouter();
   const params = useParams();
-  const sessionId = params.id as string;
-  const [session, setSession] = useState(sessionsStorage.getById(sessionId));
-  const [progressNotes, setProgressNotes] = useState(progressNotesStorage.getBySession(sessionId));
+  const sessionId = params.id as Id<"sessions">;
+  const session = useQuery(api.sessions.get, { sessionId });
+  const progressNotes = useQuery(api.progressNotes.getBySession, sessionId ? { sessionId } : "skip");
+  const updateSessionStatus = useMutation(api.sessions.updateStatus);
+  const createProgressNote = useMutation(api.progressNotes.create);
   const userId = useConvexUserId();
-
-  useEffect(() => {
-    if (sessionId) {
-      setSession(sessionsStorage.getById(sessionId));
-      setProgressNotes(progressNotesStorage.getBySession(sessionId));
-    }
-  }, [sessionId]);
+  const sessionUser = useQuery(api.users.get, session?.userId ? { userId: session.userId } : "skip");
+  const sessionChild = useQuery(api.children.get, session?.childId ? { childId: session.childId } : "skip");
+  const allUsers = useQuery(api.users.getAll);
 
   const [formData, setFormData] = useState({
     notes: "",
@@ -30,34 +30,29 @@ export default function SessionDetail() {
     return <div className="p-8">Loading...</div>;
   }
 
-  const handleStatusUpdate = (status: "scheduled" | "completed" | "cancelled") => {
+  const handleStatusUpdate = async (status: "scheduled" | "completed" | "cancelled") => {
     try {
-      sessionsStorage.updateStatus(sessionId, status);
-      setSession({ ...session, status });
+      await updateSessionStatus({ sessionId, status });
       alert("Status updated successfully!");
-      // Reload window to refresh data
-      window.location.reload();
     } catch (error: any) {
       alert("Error updating status: " + error.message);
     }
   };
 
-  const handleAddNote = (e: React.FormEvent) => {
+  const handleAddNote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!session.childId || !userId) return;
 
     setLoading(true);
     try {
-      progressNotesStorage.create({
+      await createProgressNote({
         sessionId,
         childId: session.childId,
         therapistId: userId,
         notes: formData.notes,
         progress: formData.progress,
-        date: Date.now(),
       });
       setFormData({ notes: "", progress: "" });
-      setProgressNotes(progressNotesStorage.getBySession(sessionId));
       alert("Progress note added successfully!");
     } catch (error: any) {
       alert("Error adding note: " + error.message);
@@ -65,9 +60,6 @@ export default function SessionDetail() {
       setLoading(false);
     }
   };
-
-  const sessionUser = usersStorage.getById(session.userId);
-  const sessionChild = session.childId ? childrenStorage.getById(session.childId) : null;
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
@@ -190,7 +182,7 @@ export default function SessionDetail() {
           {progressNotes && progressNotes.length > 0 ? (
             <div className="space-y-4">
               {progressNotes.map((note) => {
-                const therapist = usersStorage.getById(note.therapistId);
+                const therapist = allUsers?.find((u) => u._id === note.therapistId);
                 return (
                   <div key={note._id} className="border border-gray-200 rounded-md p-4">
                     <div className="flex justify-between items-start mb-2">

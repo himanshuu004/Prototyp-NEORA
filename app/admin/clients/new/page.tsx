@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { children as childrenStorage, users as usersStorage } from "@/lib/storage";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 export default function NewClient() {
   const router = useRouter();
-  const [allUsers] = useState(usersStorage.getAll());
+  const createChild = useMutation(api.children.create);
+  const allUsers = useQuery(api.users.getAll);
   const [formData, setFormData] = useState({
     userId: "",
     name: "",
@@ -29,12 +31,8 @@ export default function NewClient() {
     setLoading(true);
 
     try {
-      if (!formData.userId) {
-        throw new Error("Please select a user");
-      }
-      
-      childrenStorage.create({
-        userId: formData.userId,
+      await createChild({
+        userId: formData.userId as Id<"users">,
         name: formData.name,
         age: formData.age,
         diagnosis: formData.diagnosis,
@@ -177,5 +175,3 @@ export default function NewClient() {
     </div>
   );
 }
-
-

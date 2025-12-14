@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { useConvexUserId } from "@/components/ClerkUserSync";
-import { children as childrenStorage } from "@/lib/storage";
 
 export default function NewChild() {
   const router = useRouter();
+  const createChild = useMutation(api.children.create);
   const userId = useConvexUserId();
   const [formData, setFormData] = useState({
     name: "",
@@ -26,11 +28,7 @@ export default function NewChild() {
     setLoading(true);
 
     try {
-      if (!userId) {
-        throw new Error("User not logged in");
-      }
-      
-      childrenStorage.create({
+      await createChild({
         userId,
         name: formData.name,
         age: formData.age,
@@ -154,5 +152,3 @@ export default function NewChild() {
     </div>
   );
 }
-
-

@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { useConvexUser, useConvexUserId } from "@/components/ClerkUserSync";
-import { children as childrenStorage, sessions as sessionsStorage, payments as paymentsStorage } from "@/lib/storage";
 import Link from "next/link";
 
 export default function Dashboard() {
@@ -12,17 +13,10 @@ export default function Dashboard() {
   const { isSignedIn, isLoaded } = useUser();
   const user = useConvexUser();
   const userId = useConvexUserId();
-  const [userChildren, setUserChildren] = useState(childrenStorage.getByUser(userId || ""));
-  const [userSessions, setUserSessions] = useState(sessionsStorage.getByUser(userId || ""));
-  const [userPayments, setUserPayments] = useState(paymentsStorage.getByUser(userId || ""));
-
-  useEffect(() => {
-    if (userId) {
-      setUserChildren(childrenStorage.getByUser(userId));
-      setUserSessions(sessionsStorage.getByUser(userId));
-      setUserPayments(paymentsStorage.getByUser(userId));
-    }
-  }, [userId]);
+  
+  const children = useQuery(api.children.getByUser, userId ? { userId } : "skip");
+  const sessions = useQuery(api.sessions.getByUser, userId ? { userId } : "skip");
+  const payments = useQuery(api.payments.getByUser, userId ? { userId } : "skip");
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
@@ -57,20 +51,20 @@ export default function Dashboard() {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow-md p-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-2">Upcoming Sessions</h3>
-              <p className="text-3xl font-bold text-primary-600">
-              {userSessions?.filter((s) => s.status === "scheduled").length || 0}
+            <p className="text-3xl font-bold text-primary-600">
+              {sessions?.filter((s) => s.status === "scheduled").length || 0}
             </p>
           </div>
           <div className="bg-white rounded-lg shadow-md p-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-2">Completed Sessions</h3>
             <p className="text-3xl font-bold text-green-600">
-              {userSessions?.filter((s) => s.status === "completed").length || 0}
+              {sessions?.filter((s) => s.status === "completed").length || 0}
             </p>
           </div>
           <div className="bg-white rounded-lg shadow-md p-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-2">Total Payments</h3>
             <p className="text-3xl font-bold text-blue-600">
-              ₹{userPayments?.reduce((sum, p) => sum + (p.status === "completed" ? p.amount : 0), 0) || 0}
+              ₹{payments?.reduce((sum, p) => sum + (p.status === "completed" ? p.amount : 0), 0) || 0}
             </p>
           </div>
         </div>
@@ -86,9 +80,9 @@ export default function Dashboard() {
                 + Add Child
               </Link>
             </div>
-            {userChildren && userChildren.length > 0 ? (
+            {children && children.length > 0 ? (
               <div className="space-y-4">
-                {userChildren.map((child) => (
+                {children.map((child) => (
                   <div key={child._id} className="border border-gray-200 rounded-md p-4">
                     <h3 className="font-semibold text-gray-800">{child.name}</h3>
                     <p className="text-sm text-gray-600">Age: {child.age}</p>
@@ -103,38 +97,32 @@ export default function Dashboard() {
 
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-2xl font-semibold text-gray-800 mb-4">Booked Sessions</h2>
-            {userSessions && userSessions.length > 0 ? (
+            {sessions && sessions.length > 0 ? (
               <div className="space-y-4">
-                {userSessions.map((session) => {
-                  const sessionChild = session.childId ? childrenStorage.getById(session.childId) : null;
-                  return (
-                    <div key={session._id} className="border border-gray-200 rounded-md p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <h3 className="font-semibold text-gray-800">{session.therapyType}</h3>
-                          <p className="text-sm text-gray-600">
-                            {formatDate(session.sessionDate)} at {session.sessionTime}
-                          </p>
-                        </div>
-                        <span
-                          className={`px-2 py-1 rounded text-xs font-semibold ${
-                            session.status === "scheduled"
-                              ? "bg-blue-100 text-blue-800"
-                              : session.status === "completed"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-gray-100 text-gray-800"
-                          }`}
-                        >
-                          {session.status}
-                        </span>
+                {sessions.map((session) => (
+                  <div key={session._id} className="border border-gray-200 rounded-md p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h3 className="font-semibold text-gray-800">{session.therapyType}</h3>
+                        <p className="text-sm text-gray-600">
+                          {formatDate(session.sessionDate)} at {session.sessionTime}
+                        </p>
                       </div>
-                      {sessionChild && (
-                        <p className="text-sm text-gray-600">Child: {sessionChild.name}</p>
-                      )}
-                      <p className="text-sm text-gray-600 mt-2">{session.concern}</p>
+                      <span
+                        className={`px-2 py-1 rounded text-xs font-semibold ${
+                          session.status === "scheduled"
+                            ? "bg-blue-100 text-blue-800"
+                            : session.status === "completed"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {session.status}
+                      </span>
                     </div>
-                  );
-                })}
+                    <p className="text-sm text-gray-600 mt-2">{session.concern}</p>
+                  </div>
+                ))}
               </div>
             ) : (
               <p className="text-gray-600">No sessions booked yet.</p>
@@ -150,7 +138,7 @@ export default function Dashboard() {
 
         <div className="mt-6 bg-white rounded-lg shadow-md p-6">
           <h2 className="text-2xl font-semibold text-gray-800 mb-4">Payment History</h2>
-          {userPayments && userPayments.length > 0 ? (
+          {payments && payments.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -161,7 +149,7 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {userPayments.map((payment) => (
+                  {payments.map((payment) => (
                     <tr key={payment._id} className="border-b">
                       <td className="py-2 px-4">{formatTime(payment.paymentDate)}</td>
                       <td className="py-2 px-4">₹{payment.amount}</td>
@@ -190,10 +178,10 @@ export default function Dashboard() {
 
         <div className="mt-6 bg-white rounded-lg shadow-md p-6">
           <h2 className="text-2xl font-semibold text-gray-800 mb-4">Progress Notes</h2>
-          {userChildren && userChildren.length > 0 ? (
+          {children && children.length > 0 ? (
             <div className="space-y-4">
-              {userChildren.map((child) => {
-                const childSessions = userSessions?.filter((s) => s.childId === child._id) || [];
+              {children.map((child) => {
+                const childSessions = sessions?.filter((s) => s.childId === child._id) || [];
                 return (
                   <div key={child._id} className="border border-gray-200 rounded-md p-4">
                     <h3 className="font-semibold text-gray-800 mb-2">{child.name}</h3>
@@ -217,4 +205,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
