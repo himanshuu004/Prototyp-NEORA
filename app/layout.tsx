@@ -14,13 +14,18 @@ export const metadata: Metadata = {
   description: "Professional therapy services for children and adults",
 };
 
+// Dynamic export to prevent static generation issues
+export const dynamic = 'force-dynamic';
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || "pk_test_dummy_for_build";
+
   return (
-    <ClerkProvider>
+    <ClerkProvider publishableKey={clerkPublishableKey}>
       <html lang="en">
         <body className={`${inter.className} flex flex-col min-h-screen`}>
           <ClerkUserSync />

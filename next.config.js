@@ -5,6 +5,8 @@ const nextConfig = {
     domains: [],
     remotePatterns: [],
   },
+  // Skip static optimization for pages that require Clerk
+  output: 'standalone',
 }
 
 module.exports = nextConfig
